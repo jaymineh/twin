@@ -1,6 +1,11 @@
 terraform {
   required_version = ">= 1.0"
 
+  # Required so `terraform init -backend-config=...` (see scripts/deploy.sh) actually
+  # uses the S3 remote backend. Without this block, flags are ignored and CI uses a
+  # fresh local state each run → BucketAlreadyExists / EntityAlreadyExists.
+  backend "s3" {}
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
