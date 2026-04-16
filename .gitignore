@@ -1,0 +1,44 @@
+lambda-deployment.zip
+lambda-package/
+backend/data/facts.json
+backend/data/summary.txt
+backend/data/linkedin.pdf
+backend/.env
+
+# Memory storage (contains conversation history)
+memory/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.d/
+*.tfvars.secret
+
+# Environment files
+.env
+.env.*
+*.env.example
+
+# Node
+node_modules/
+out/
+.next/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# AWS
+.aws/
