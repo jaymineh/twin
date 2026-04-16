@@ -1,0 +1,21 @@
+{
+    "full_name": "Jemine Ejegi",
+    "name": "Jaymineh",
+    "current_role": "Senior DevOps Engineer",
+    "location": "Laogs, Nigeria",
+    "email": "jemineme@gmail.com",
+    "linkedin": "linkedin.com/in/jemine-ejegi",
+    "specialties": [
+      "Microservice Design & Deployment",
+      "CI/CD Pipeline Building And Management",
+      "LLM Deployment And Integration"
+    ],
+    "years_experience": 5,
+    "education": [
+      {
+        "degree": "Computer Science",
+        "institution": "Delta State University",
+        "year": "2017"
+      }
+    ]
+  }

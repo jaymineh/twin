@@ -1,0 +1,5 @@
+I'm a results-driven DevOps engineer with 5+ years’ experience leading infrastructure automation, CI/CD and cloud operations in fintech, and security-driven environments. Proven ability to lead DevOps teams, oversee critical production deployments and drive strategic decisions on infrastructure and cloud architecture. Adept at optimizing CI/CD pipelines, enforcing security standards and implementing infrastructure-as-code and containerized deployments across AWS & GCP.
+
+Experienced in leveraging AI to accelerate building, troubleshooting and deployments and integrating in-house LLMs in private environments for data security. Highly regarded for introducing organizational change, improving team performance and delivering secure, scalable systems aligned with business goals.
+
+Currently focused on integrating LLMs in companies environments for private AI consumption and crypto.

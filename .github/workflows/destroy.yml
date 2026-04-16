@@ -1,68 +1,70 @@
-name: Destroy Environment
+#!/bin/bash
+set -e
 
-on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to destroy'
-        required: true
-        type: choice
-        options:
-          - dev
-          - test
-          - prod
-      confirm:
-        description: 'Type the environment name to confirm destruction'
-        required: true
+# Check if environment parameter is provided
+if [ $# -eq 0 ]; then
+    echo "❌ Error: Environment parameter is required"
+    echo "Usage: $0 <environment>"
+    echo "Example: $0 dev"
+    echo "Available environments: dev, test, prod"
+    exit 1
+fi
 
-permissions:
-  id-token: write
-  contents: read
+ENVIRONMENT=$1
+PROJECT_NAME=${2:-twin}
 
-jobs:
-  destroy:
-    name: Destroy ${{ github.event.inputs.environment }}
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    
-    steps:
-      - name: Verify confirmation
-        run: |
-          if [ "${{ github.event.inputs.confirm }}" != "${{ github.event.inputs.environment }}" ]; then
-            echo "❌ Confirmation does not match environment name!"
-            echo "You entered: '${{ github.event.inputs.confirm }}'"
-            echo "Expected: '${{ github.event.inputs.environment }}'"
-            exit 1
-          fi
-          echo "✅ Destruction confirmed for ${{ github.event.inputs.environment }}"
+echo "🗑️ Preparing to destroy ${PROJECT_NAME}-${ENVIRONMENT} infrastructure..."
 
-      - name: Checkout code
-        uses: actions/checkout@v4
+# Navigate to terraform directory
+cd "$(dirname "$0")/../terraform"
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: github-actions-destroy
-          aws-region: ${{ secrets.DEFAULT_AWS_REGION }}
+# Check if workspace exists
+if ! terraform workspace list | grep -q "$ENVIRONMENT"; then
+    echo "❌ Error: Workspace '$ENVIRONMENT' does not exist"
+    echo "Available workspaces:"
+    terraform workspace list
+    exit 1
+fi
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_wrapper: false  # Important: disable wrapper to get raw outputs
+# Select the workspace
+terraform workspace select "$ENVIRONMENT"
 
-      - name: Run Destroy Script
-        run: |
-          # Set environment variables for the script
-          export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
-          export DEFAULT_AWS_REGION=${{ secrets.DEFAULT_AWS_REGION }}
-          
-          # Make script executable and run it
-          chmod +x scripts/destroy.sh
-          ./scripts/destroy.sh ${{ github.event.inputs.environment }}
-        env:
-          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+echo "📦 Emptying S3 buckets..."
 
-      - name: Destruction Complete
-        run: |
-          echo "✅ Environment ${{ github.event.inputs.environment }} has been destroyed!"
+# Get AWS Account ID for bucket names
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
+# Get bucket names with account ID
+FRONTEND_BUCKET="${PROJECT_NAME}-${ENVIRONMENT}-frontend-${AWS_ACCOUNT_ID}"
+MEMORY_BUCKET="${PROJECT_NAME}-${ENVIRONMENT}-memory-${AWS_ACCOUNT_ID}"
+
+# Empty frontend bucket if it exists
+if aws s3 ls "s3://$FRONTEND_BUCKET" 2>/dev/null; then
+    echo "  Emptying $FRONTEND_BUCKET..."
+    aws s3 rm "s3://$FRONTEND_BUCKET" --recursive
+else
+    echo "  Frontend bucket not found or already empty"
+fi
+
+# Empty memory bucket if it exists
+if aws s3 ls "s3://$MEMORY_BUCKET" 2>/dev/null; then
+    echo "  Emptying $MEMORY_BUCKET..."
+    aws s3 rm "s3://$MEMORY_BUCKET" --recursive
+else
+    echo "  Memory bucket not found or already empty"
+fi
+
+echo "🔥 Running terraform destroy..."
+
+# Run terraform destroy with auto-approve
+if [ "$ENVIRONMENT" = "prod" ] && [ -f "prod.tfvars" ]; then
+    terraform destroy -var-file=prod.tfvars -var="project_name=$PROJECT_NAME" -var="environment=$ENVIRONMENT" -auto-approve
+else
+    terraform destroy -var="project_name=$PROJECT_NAME" -var="environment=$ENVIRONMENT" -auto-approve
+fi
+
+echo "✅ Infrastructure for ${ENVIRONMENT} has been destroyed!"
+echo ""
+echo "💡 To remove the workspace completely, run:"
+echo "   terraform workspace select default"
+echo "   terraform workspace delete $ENVIRONMENT"
